@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-const PULL_REQUST_INFO = {
+const PULL_REQUEST_INFO = {
   id: process.env.PULL_REQUEST_ID,
   owner: process.env.GITHUB_REPOSITORY.split("/")[0],
   repoName: process.env.GITHUB_REPOSITORY.split("/")[1],
@@ -50,6 +50,10 @@ const PULL_REQUEST_GUIDELINES_URL = process.env.PULL_REQUEST_GUIDELINES_URL;
 const CONTRIBUTORS_URL = process.env.CONTRIBUTORS_URL;
 
 const CLA_LABEL = process.env.CLA_LABEL || "PR - Needs Signed CLA";
+
+console.log(
+  `[check-for-cla] GitHub actor: ${PULL_REQUEST_INFO.username} | repo: ${PULL_REQUEST_INFO.owner}/${PULL_REQUEST_INFO.repoName}`,
+);
 
 const getGraphAccessToken = async () => {
   const tokenUrl = `https://login.microsoftonline.com/${MICROSOFT_GRAPH_INFO.tenantId}/oauth2/v2.0/token`;
@@ -126,7 +130,7 @@ const checkIfIndividualCLAFound = async () => {
     if (rows[i][0] && rows[i][0].length > 0) {
       rowUsername = rows[i][0].toLowerCase();
     }
-    if (PULL_REQUST_INFO.username.toLowerCase() === rowUsername) {
+    if (PULL_REQUEST_INFO.username.toLowerCase() === rowUsername) {
       return true;
     }
   }
@@ -153,7 +157,7 @@ const checkIfCorporateCLAFound = async () => {
 
     for (let j = 0; j < words.length; j++) {
       // Checking for substrings because many GitHub usernames added as "github.com/username".
-      if (words[j].includes(PULL_REQUST_INFO.username.toLowerCase())) {
+      if (words[j].includes(PULL_REQUEST_INFO.username.toLowerCase())) {
         return true;
       }
     }
@@ -185,7 +189,7 @@ const getCommentBody = (hasSignedCLA, errorFoundOnCLACheck) => {
   const commentBody = getCommentFromTemplate({
     errorCla: errorFoundOnCLACheck,
     hasCla: hasSignedCLA,
-    username: PULL_REQUST_INFO.username,
+    username: PULL_REQUEST_INFO.username,
     claUrl: CLA_URL,
     pullRequestGuidelinesUrl: PULL_REQUEST_GUIDELINES_URL,
     contributorsUrl: CONTRIBUTORS_URL,
@@ -198,14 +202,14 @@ const postCommentOnPullRequest = async (hasSignedCLA, errorFoundOnCLACheck) => {
   const octokit = new Octokit();
 
   return octokit.request(
-    `POST /repos/${PULL_REQUST_INFO.owner}/${PULL_REQUST_INFO.repoName}/issues/${PULL_REQUST_INFO.id}/comments`,
+    `POST /repos/${PULL_REQUEST_INFO.owner}/${PULL_REQUEST_INFO.repoName}/issues/${PULL_REQUEST_INFO.id}/comments`,
     {
-      owner: PULL_REQUST_INFO.username,
-      repo: PULL_REQUST_INFO.repoName,
-      issue_number: PULL_REQUST_INFO.id,
+      owner: PULL_REQUEST_INFO.username,
+      repo: PULL_REQUEST_INFO.repoName,
+      issue_number: PULL_REQUEST_INFO.id,
       body: getCommentBody(hasSignedCLA, errorFoundOnCLACheck),
       headers: {
-        authorization: `bearer ${PULL_REQUST_INFO.gitHubToken}`,
+        authorization: `bearer ${PULL_REQUEST_INFO.gitHubToken}`,
         accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
       },
@@ -217,11 +221,11 @@ const addLabelToPullRequest = async () => {
   const octokit = new Octokit();
 
   return octokit.request(
-    `POST /repos/${PULL_REQUST_INFO.owner}/${PULL_REQUST_INFO.repoName}/issues/${PULL_REQUST_INFO.id}/labels`,
+    `POST /repos/${PULL_REQUEST_INFO.owner}/${PULL_REQUEST_INFO.repoName}/issues/${PULL_REQUEST_INFO.id}/labels`,
     {
       labels: [CLA_LABEL],
       headers: {
-        authorization: `bearer ${PULL_REQUST_INFO.gitHubToken}`,
+        authorization: `bearer ${PULL_REQUEST_INFO.gitHubToken}`,
         accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
       },
