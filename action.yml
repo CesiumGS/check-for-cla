@@ -1,0 +1,52 @@
+name: "Check for CLA"
+description: "Checks whether a pull request author has a Contributor License Agreement on file and comments on the pull request with the result."
+author: "Cesium GS, Inc."
+
+inputs:
+  github-token:
+    description: "Token used to comment on and label the pull request. Needs issues: write and pull-requests: write."
+    required: true
+  pull-request-id:
+    description: "Number of the pull request to check."
+    required: true
+  microsoft-graph-info-json:
+    description: "JSON object holding Microsoft Graph credentials and the workbook identifiers used to look up CLA records."
+    required: true
+  cla-url:
+    description: "Link contributors follow to sign a CLA."
+    required: true
+  pull-request-guidelines-url:
+    description: "Link to the pull request guidelines."
+    required: true
+  contributors-url:
+    description: "Link to the repository's CONTRIBUTORS file. Leave unset in repositories without one to omit that checklist item."
+    required: false
+    default: ""
+  cla-label:
+    description: "Label applied to pull requests from authors without a CLA on file. Defaults to 'PR - Needs Signed CLA'."
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install node 22
+      uses: actions/setup-node@v7
+      with:
+        node-version: "22"
+    - name: Install npm packages
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+    - name: Check for CLA
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PULL_REQUEST_ID: ${{ inputs.pull-request-id }}
+        MICROSOFT_GRAPH_INFO_JSON: ${{ inputs.microsoft-graph-info-json }}
+        CONTRIBUTORS_URL: ${{ inputs.contributors-url }}
+        CLA_URL: ${{ inputs.cla-url }}
+        PULL_REQUEST_GUIDELINES_URL: ${{ inputs.pull-request-guidelines-url }}
+        CLA_LABEL: ${{ inputs.cla-label }}
+      run: node index.js
